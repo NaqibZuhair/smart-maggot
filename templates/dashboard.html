@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Maggot Monitoring</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+    <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
+</head>
+<body>
+
+    <div class="navbar">
+        <h1>Smart Maggot Monitoring</h1>
+        <p>Dashboard monitoring suhu dan kelembaban kandang maggot berbasis IoT</p>
+    </div>
+
+    <div class="container">
+        <div class="cards">
+            <div class="card">
+                <small>Suhu Terbaru</small>
+                <h2 id="suhu">- °C</h2>
+            </div>
+
+            <div class="card">
+                <small>Kelembaban Terbaru</small>
+                <h2 id="kelembaban">- %</h2>
+            </div>
+
+            <div class="card">
+                <small>Status Kandang</small>
+                <h2 id="status">-</h2>
+            </div>
+
+            <div class="card">
+                <small>Waktu Data Terakhir</small>
+                <h2 id="waktuTerakhir">-</h2>
+            </div>
+        </div>
+
+        <div id="alertKondisi" class="alert-kondisi alert-netral">
+            <strong>Status Monitoring:</strong>
+            <span id="alertText">Belum ada data sensor terbaru.</span>
+        </div>
+
+        <div class="panel">
+            <h3>Kontrol Data Sensor</h3>
+            <p>
+                Tombol ini digunakan untuk membuat data simulasi selama alat ESP32 dan sensor DHT belum tersedia.
+            </p>
+
+            <button onclick="buatSimulasi()">Generate Data Simulasi</button>
+
+            <a href="/api/sensor/export-csv" class="btn-export">Export Data CSV</a>
+
+            <button onclick="bukaModalReset()" class="btn-reset">Reset Data</button>
+
+            <h3 style="margin-top: 24px;">Keterangan</h3>
+            <p id="keterangan">Belum ada data terbaru.</p>
+        </div>
+
+        <div class="panel">
+            <h3>Analisis Data Sensor</h3>
+            <p>Ringkasan statistik dari seluruh data sensor yang tersimpan di database.</p>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <small>Total Data</small>
+                    <h3 id="totalData">-</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Rata-rata Suhu</small>
+                    <h3 id="rataSuhu">- °C</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Rata-rata Kelembaban</small>
+                    <h3 id="rataKelembaban">- %</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Suhu Tertinggi</small>
+                    <h3 id="suhuTertinggi">- °C</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kelembaban Tertinggi</small>
+                    <h3 id="kelembabanTertinggi">- %</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kondisi Normal</small>
+                    <h3 id="totalNormal">-</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kondisi Peringatan</small>
+                    <h3 id="totalPeringatan">-</h3>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; background: #ecfdf5; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px;">
+                <h3 style="margin-top: 0;">Kesimpulan Sementara</h3>
+                <p id="kesimpulanAnalisis" style="margin-bottom: 0;">
+                    Belum ada kesimpulan. Data sensor masih perlu dikumpulkan.
+                </p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Grafik Suhu dan Kelembaban</h3>
+            <p>Grafik ini menampilkan tren 20 data sensor terbaru yang tersimpan di database.</p>
+
+            <div class="chart-wrapper">
+                <canvas id="grafikSensor"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Riwayat Data Sensor</h3>
+            <p>Menampilkan 20 data sensor terbaru yang sudah tersimpan di database.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>Suhu</th>
+                        <th>Kelembaban</th>
+                        <th>Status</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelRiwayat">
+                    <tr>
+                        <td colspan="5">Belum ada data.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="modalReset" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Reset Data Sensor</h3>
+            <p>
+                Yakin ingin menghapus semua data sensor? Data yang sudah dihapus tidak dapat dikembalikan.
+            </p>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="tutupModalReset()">Batal</button>
+                <button type="button" class="btn-confirm-reset" onclick="resetData()">Ya, Reset Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+</body>
+</html>
