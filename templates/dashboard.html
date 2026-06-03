@@ -44,6 +44,35 @@
         </div>
 
         <div class="panel">
+            <h3>Batas Ideal Kondisi Kandang</h3>
+            <p>
+                Batas ini digunakan sistem untuk mengklasifikasikan kondisi kandang maggot berdasarkan data suhu dan kelembaban.
+            </p>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <small>Suhu Normal</small>
+                    <h3>25°C - 32°C</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kelembaban Normal</small>
+                    <h3>60% - 80%</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Suhu Peringatan</small>
+                    <h3>&lt; 25°C atau &gt; 32°C</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kelembaban Peringatan</small>
+                    <h3>&lt; 60% atau &gt; 80%</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
             <h3>Kontrol Data Sensor</h3>
             <p>
                 Tombol ini digunakan untuk membuat data simulasi selama alat ESP32 dan sensor DHT belum tersedia.
@@ -55,7 +84,7 @@
 
             <button onclick="bukaModalReset()" class="btn-reset">Reset Data</button>
 
-            <h3 style="margin-top: 24px;">Keterangan</h3>
+            <h3 style="margin-top: 24px;">Keterangan Data Terbaru</h3>
             <p id="keterangan">Belum ada data terbaru.</p>
         </div>
 
@@ -85,8 +114,18 @@
                 </div>
 
                 <div class="stat-box">
+                    <small>Suhu Terendah</small>
+                    <h3 id="suhuTerendah">- °C</h3>
+                </div>
+
+                <div class="stat-box">
                     <small>Kelembaban Tertinggi</small>
                     <h3 id="kelembabanTertinggi">- %</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Kelembaban Terendah</small>
+                    <h3 id="kelembabanTerendah">- %</h3>
                 </div>
 
                 <div class="stat-box">
@@ -98,12 +137,65 @@
                     <small>Kondisi Peringatan</small>
                     <h3 id="totalPeringatan">-</h3>
                 </div>
+
+                <div class="stat-box">
+                    <small>Persentase Normal</small>
+                    <h3 id="persentaseNormal">- %</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Persentase Peringatan</small>
+                    <h3 id="persentasePeringatan">- %</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Detail Klasifikasi Kondisi</h3>
+            <p>
+                Bagian ini menampilkan jumlah data berdasarkan hasil klasifikasi suhu dan kelembaban kandang.
+            </p>
+
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <small>Terlalu Panas</small>
+                    <h3 id="totalTerlaluPanas">-</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Terlalu Dingin</small>
+                    <h3 id="totalTerlaluDingin">-</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Terlalu Lembab</small>
+                    <h3 id="totalTerlaluLembab">-</h3>
+                </div>
+
+                <div class="stat-box">
+                    <small>Terlalu Kering</small>
+                    <h3 id="totalTerlaluKering">-</h3>
+                </div>
             </div>
 
             <div style="margin-top: 18px; background: #ecfdf5; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px;">
                 <h3 style="margin-top: 0;">Kesimpulan Sementara</h3>
                 <p id="kesimpulanAnalisis" style="margin-bottom: 0;">
                     Belum ada kesimpulan. Data sensor masih perlu dikumpulkan.
+                </p>
+            </div>
+
+            <div style="margin-top: 18px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 12px;">
+                <h3 style="margin-top: 0;">Rekomendasi Tindakan</h3>
+                <p id="rekomendasiAnalisis" style="margin-bottom: 0;">
+                    Belum ada rekomendasi. Data sensor masih perlu dikumpulkan.
+                </p>
+            </div>
+
+            <div style="margin-top: 18px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px;">
+                <h3 style="margin-top: 0;">Ringkasan Pengujian</h3>
+                <p id="ringkasanPengujian" style="margin-bottom: 0;">
+                    Belum ada ringkasan pengujian. Data sensor masih perlu dikumpulkan.
                 </p>
             </div>
         </div>

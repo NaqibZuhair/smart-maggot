@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -8,21 +12,26 @@ body {
 .navbar {
     background: #14532d;
     color: white;
-    padding: 18px 32px;
+    padding: 22px 32px;
+    box-shadow: 0 8px 18px rgba(20, 83, 45, 0.18);
 }
 
 .navbar h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 26px;
+    letter-spacing: 0.2px;
 }
 
 .navbar p {
-    margin: 6px 0 0;
+    margin: 7px 0 0;
     font-size: 14px;
-    opacity: 0.9;
+    opacity: 0.92;
 }
 
 .container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
     padding: 28px;
 }
 
@@ -36,37 +45,86 @@ body {
 .card,
 .panel {
     background: white;
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 22px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(229, 231, 235, 0.9);
 }
 
-.card small {
+.card {
+    min-height: 120px;
+}
+
+.card small,
+.stat-box small {
     color: #6b7280;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: bold;
 }
 
 .card h2 {
     margin: 10px 0 0;
-    font-size: 34px;
+    font-size: 30px;
+    line-height: 1.2;
 }
 
 .panel {
     margin-bottom: 24px;
 }
 
-button {
-    background: #15803d;
-    color: white;
+.panel h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #14532d;
+}
+
+.panel p {
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+button,
+.btn-export {
+    display: inline-block;
     border: none;
     padding: 12px 18px;
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+button {
+    background: #15803d;
+    color: white;
 }
 
 button:hover {
     background: #166534;
+    transform: translateY(-1px);
+}
+
+.btn-export {
+    background: #1d4ed8;
+    color: white;
+    margin-left: 8px;
+}
+
+.btn-export:hover {
+    background: #1e40af;
+    transform: translateY(-1px);
+}
+
+.btn-reset {
+    background: #dc2626;
+    color: white;
+    margin-left: 8px;
+}
+
+.btn-reset:hover {
+    background: #b91c1c;
 }
 
 .status-normal {
@@ -77,122 +135,13 @@ button:hover {
     color: #dc2626;
 }
 
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-top: 16px;
-}
-
-.stat-box {
-    background: #f9fafb;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #e5e7eb;
-}
-
-.stat-box small {
-    color: #6b7280;
-    font-size: 13px;
-}
-
-.stat-box h3 {
-    margin: 8px 0 0;
-    font-size: 24px;
-}
-
-.kesimpulan-box {
-    margin-top: 18px;
-    background: #ecfdf5;
-    border: 1px solid #bbf7d0;
-    padding: 16px;
-    border-radius: 12px;
-}
-
-.kesimpulan-box h3 {
-    margin-top: 0;
-}
-
-.kesimpulan-box p {
-    margin-bottom: 0;
-}
-
-.chart-wrapper {
-    position: relative;
-    height: 330px;
-    width: 100%;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-}
-
-th,
-td {
-    padding: 12px;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-    font-size: 14px;
-}
-
-th {
-    background: #f9fafb;
-}
-
-.badge {
-    padding: 6px 10px;
-    border-radius: 20px;
-    color: white;
-    font-size: 12px;
-    display: inline-block;
-}
-
-.badge-normal {
-    background: #15803d;
-}
-
-.badge-warning {
-    background: #dc2626;
-}
-
-.btn-export {
-    display: inline-block;
-    background: #1d4ed8;
-    color: white;
-    text-decoration: none;
-    padding: 12px 18px;
-    border-radius: 10px;
-    font-weight: bold;
-    margin-left: 8px;
-}
-
-.btn-export:hover {
-    background: #1e40af;
-}
-
-.btn-reset {
-    background: #dc2626;
-    color: white;
-    border: none;
-    padding: 12px 18px;
-    border-radius: 10px;
-    font-weight: bold;
-    margin-left: 8px;
-    cursor: pointer;
-}
-
-.btn-reset:hover {
-    background: #b91c1c;
-}
-
 .alert-kondisi {
     padding: 16px 18px;
-    border-radius: 12px;
+    border-radius: 14px;
     margin-bottom: 24px;
     font-size: 15px;
     border: 1px solid transparent;
+    line-height: 1.6;
 }
 
 .alert-netral {
@@ -211,6 +160,77 @@ th {
     background: #fef2f2;
     border-color: #fecaca;
     color: #991b1b;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.stat-box {
+    background: #f9fafb;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+}
+
+.stat-box h3 {
+    margin: 8px 0 0;
+    font-size: 23px;
+    line-height: 1.25;
+    color: #111827;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 340px;
+    width: 100%;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+th,
+td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+th {
+    background: #f9fafb;
+    color: #374151;
+}
+
+tbody tr:hover {
+    background: #f9fafb;
+}
+
+.badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    color: white;
+    font-size: 12px;
+    display: inline-block;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.badge-normal {
+    background: #15803d;
+}
+
+.badge-warning {
+    background: #dc2626;
 }
 
 .modal-overlay {
@@ -240,6 +260,7 @@ th {
 .modal-box h3 {
     margin-top: 0;
     margin-bottom: 10px;
+    color: #14532d;
 }
 
 .modal-box p {
@@ -271,22 +292,58 @@ th {
     background: #b91c1c;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1024px) {
     .cards {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .stat-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 800px) {
+    .navbar {
+        padding: 18px;
+    }
+
+    .navbar h1 {
+        font-size: 22px;
     }
 
     .container {
         padding: 18px;
     }
 
+    .cards,
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card h2 {
+        font-size: 26px;
+    }
+
+    button,
+    .btn-export,
+    .btn-reset {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 10px;
+        text-align: center;
+    }
+
+    .chart-wrapper {
+        height: 280px;
+    }
+
     table {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+    }
+
+    .modal-actions {
+        flex-direction: column;
     }
 }

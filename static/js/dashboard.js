@@ -1,48 +1,105 @@
 let grafikSensor = null;
 
+function getEl(id) {
+    return document.getElementById(id);
+}
+
+function setText(id, value) {
+    const element = getEl(id);
+    if (element) {
+        element.innerText = value;
+    }
+}
+
+function setClass(id, className) {
+    const element = getEl(id);
+    if (element) {
+        element.className = className;
+    }
+}
+
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return '-';
+    }
+
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+async function fetchJson(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        const result = await response.json();
+
+        if (!response.ok || result.success === false) {
+            throw new Error(result.message || 'Terjadi kesalahan saat mengambil data.');
+        }
+
+        return result;
+    } catch (error) {
+        console.error(error);
+        tampilkanPeringatan('Gagal memuat data: ' + error.message);
+        return null;
+    }
+}
+
+function tampilkanPeringatan(pesan) {
+    setClass('alertKondisi', 'alert-kondisi alert-warning');
+    setText('alertText', pesan);
+}
+
 async function ambilDataTerbaru() {
-    const response = await fetch('/api/sensor/latest');
-    const result = await response.json();
+    const result = await fetchJson('/api/sensor/latest');
 
-    if (result.data) {
-        const data = result.data;
+    if (!result || !result.data) {
+        setText('suhu', '-');
+        setText('kelembaban', '-');
+        setText('status', 'Belum Ada Data');
+        setText('keterangan', 'Belum ada data sensor yang tersimpan.');
+        setText('waktuTerakhir', '-');
 
-        document.getElementById('suhu').innerText = data.suhu + ' °C';
-        document.getElementById('kelembaban').innerText = data.kelembaban + ' %';
-        document.getElementById('status').innerText = data.status_kondisi;
-        document.getElementById('keterangan').innerText = data.keterangan;
-        document.getElementById('waktuTerakhir').innerText = formatWaktuLengkap(data.created_at);
+        setClass('status', 'status-warning');
+        setClass('alertKondisi', 'alert-kondisi alert-warning');
+        setText('alertText', 'Belum ada data sensor. Silakan buat data simulasi terlebih dahulu.');
+        return;
+    }
 
-        const statusElement = document.getElementById('status');
+    const data = result.data;
+    const status = data.status_kondisi || '-';
+    const keterangan = data.keterangan || '-';
 
-        if (data.status_kondisi === 'Normal') {
-            statusElement.className = 'status-normal';
-        } else {
-            statusElement.className = 'status-warning';
-        }
+    setText('suhu', `${data.suhu} °C`);
+    setText('kelembaban', `${data.kelembaban} %`);
+    setText('status', status);
+    setText('keterangan', keterangan);
+    setText('waktuTerakhir', formatWaktuLengkap(data.created_at));
 
-        const alertKondisi = document.getElementById('alertKondisi');
-        const alertText = document.getElementById('alertText');
-
-        if (data.status_kondisi === 'Normal') {
-            alertKondisi.className = 'alert-kondisi alert-normal';
-            alertText.innerText = 'Kondisi kandang maggot berada dalam batas normal.';
-        } else {
-            alertKondisi.className = 'alert-kondisi alert-warning';
-            alertText.innerText = data.status_kondisi + '. ' + data.keterangan;
-        }
+    if (status === 'Normal') {
+        setClass('status', 'status-normal');
+        setClass('alertKondisi', 'alert-kondisi alert-normal');
+        setText('alertText', 'Kondisi kandang maggot berada dalam batas normal.');
+    } else {
+        setClass('status', 'status-warning');
+        setClass('alertKondisi', 'alert-kondisi alert-warning');
+        setText('alertText', `${status}. ${keterangan}`);
     }
 }
 
 async function ambilRiwayatData() {
-    const response = await fetch('/api/sensor/history');
-    const result = await response.json();
+    const result = await fetchJson('/api/sensor/history');
 
-    const tabel = document.getElementById('tabelRiwayat');
-    tabel.innerHTML = '';
+    const tabel = getEl('tabelRiwayat');
 
-    if (!result.data || result.data.length === 0) {
-        tabel.innerHTML = '<tr><td colspan="5">Belum ada data.</td></tr>';
+    if (!result || !result.data || result.data.length === 0) {
+        if (tabel) {
+            tabel.innerHTML = '<tr><td colspan="5">Belum ada data.</td></tr>';
+        }
+
         updateGrafik([], [], []);
         return;
     }
@@ -57,31 +114,41 @@ async function ambilRiwayatData() {
         dataKelembaban.push(parseFloat(item.kelembaban));
     });
 
-    result.data.slice().reverse().forEach(function(item) {
-        const badgeClass = item.status_kondisi === 'Normal'
-            ? 'badge-normal'
-            : 'badge-warning';
+    if (tabel) {
+        tabel.innerHTML = '';
 
-        tabel.innerHTML += `
-            <tr>
-                <td>${formatWaktuLengkap(item.created_at)}</td>
-                <td>${item.suhu} °C</td>
-                <td>${item.kelembaban} %</td>
-                <td>
-                    <span class="badge ${badgeClass}">
-                        ${item.status_kondisi}
-                    </span>
-                </td>
-                <td>${item.keterangan}</td>
-            </tr>
-        `;
-    });
+        result.data.slice().reverse().forEach(function(item) {
+            const badgeClass = item.status_kondisi === 'Normal'
+                ? 'badge-normal'
+                : 'badge-warning';
+
+            tabel.innerHTML += `
+                <tr>
+                    <td>${escapeHtml(formatWaktuLengkap(item.created_at))}</td>
+                    <td>${escapeHtml(item.suhu)} °C</td>
+                    <td>${escapeHtml(item.kelembaban)} %</td>
+                    <td>
+                        <span class="badge ${badgeClass}">
+                            ${escapeHtml(item.status_kondisi)}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(item.keterangan)}</td>
+                </tr>
+            `;
+        });
+    }
 
     updateGrafik(labels, dataSuhu, dataKelembaban);
 }
 
 function updateGrafik(labels, dataSuhu, dataKelembaban) {
-    const ctx = document.getElementById('grafikSensor').getContext('2d');
+    const canvas = getEl('grafikSensor');
+
+    if (!canvas || typeof Chart === 'undefined') {
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
 
     if (grafikSensor !== null) {
         grafikSensor.destroy();
@@ -116,6 +183,9 @@ function updateGrafik(labels, dataSuhu, dataKelembaban) {
             plugins: {
                 legend: {
                     position: 'bottom'
+                },
+                tooltip: {
+                    enabled: true
                 }
             },
             scales: {
@@ -128,68 +198,123 @@ function updateGrafik(labels, dataSuhu, dataKelembaban) {
 }
 
 async function ambilStatistikData() {
-    const response = await fetch('/api/sensor/statistics');
-    const result = await response.json();
+    const result = await fetchJson('/api/sensor/statistics');
 
-    if (result.data) {
-        const data = result.data;
-
-        document.getElementById('totalData').innerText = data.total_data ?? 0;
-        document.getElementById('rataSuhu').innerText = (data.rata_suhu ?? 0) + ' °C';
-        document.getElementById('rataKelembaban').innerText = (data.rata_kelembaban ?? 0) + ' %';
-        document.getElementById('suhuTertinggi').innerText = (data.suhu_tertinggi ?? 0) + ' °C';
-        document.getElementById('kelembabanTertinggi').innerText = (data.kelembaban_tertinggi ?? 0) + ' %';
-        document.getElementById('totalNormal').innerText = data.total_normal ?? 0;
-        document.getElementById('totalPeringatan').innerText = data.total_peringatan ?? 0;
-
-        let kesimpulan = '';
-
-        const totalData = data.total_data ?? 0;
-        const rataSuhu = data.rata_suhu ?? 0;
-        const rataKelembaban = data.rata_kelembaban ?? 0;
-        const totalNormal = data.total_normal ?? 0;
-        const totalPeringatan = data.total_peringatan ?? 0;
-
-        if (totalData === 0) {
-            kesimpulan = 'Belum ada data sensor yang tersimpan. Sistem masih perlu menerima data dari simulasi atau perangkat ESP32.';
-        } else if (totalNormal >= totalPeringatan) {
-            kesimpulan = `Berdasarkan ${totalData} data sensor, rata-rata suhu kandang adalah ${rataSuhu} °C dan rata-rata kelembaban adalah ${rataKelembaban}%. Sebagian besar kondisi kandang berada dalam status normal, sehingga lingkungan budidaya maggot masih cukup stabil.`;
-        } else {
-            kesimpulan = `Berdasarkan ${totalData} data sensor, rata-rata suhu kandang adalah ${rataSuhu} °C dan rata-rata kelembaban adalah ${rataKelembaban}%. Jumlah kondisi peringatan lebih banyak daripada kondisi normal, sehingga kandang perlu diperiksa, terutama pada aspek suhu, kelembaban media, dan ventilasi.`;
-        }
-
-        document.getElementById('kesimpulanAnalisis').innerText = kesimpulan;
+    if (!result || !result.data) {
+        return;
     }
+
+    const data = result.data;
+
+    const totalData = data.total_data ?? 0;
+    const rataSuhu = data.rata_suhu ?? 0;
+    const rataKelembaban = data.rata_kelembaban ?? 0;
+    const suhuTertinggi = data.suhu_tertinggi ?? 0;
+    const suhuTerendah = data.suhu_terendah ?? 0;
+    const kelembabanTertinggi = data.kelembaban_tertinggi ?? 0;
+    const kelembabanTerendah = data.kelembaban_terendah ?? 0;
+
+    const totalNormal = data.total_normal ?? 0;
+    const totalPeringatan = data.total_peringatan ?? 0;
+    const totalTerlaluPanas = data.total_terlalu_panas ?? 0;
+    const totalTerlaluDingin = data.total_terlalu_dingin ?? 0;
+    const totalTerlaluLembab = data.total_terlalu_lembab ?? 0;
+    const totalTerlaluKering = data.total_terlalu_kering ?? 0;
+
+    const persentaseNormal = data.persentase_normal ?? 0;
+    const persentasePeringatan = data.persentase_peringatan ?? 0;
+
+    setText('totalData', totalData);
+    setText('rataSuhu', `${rataSuhu} °C`);
+    setText('rataKelembaban', `${rataKelembaban} %`);
+    setText('suhuTertinggi', `${suhuTertinggi} °C`);
+    setText('suhuTerendah', `${suhuTerendah} °C`);
+    setText('kelembabanTertinggi', `${kelembabanTertinggi} %`);
+    setText('kelembabanTerendah', `${kelembabanTerendah} %`);
+
+    setText('totalNormal', totalNormal);
+    setText('totalPeringatan', totalPeringatan);
+    setText('totalTerlaluPanas', totalTerlaluPanas);
+    setText('totalTerlaluDingin', totalTerlaluDingin);
+    setText('totalTerlaluLembab', totalTerlaluLembab);
+    setText('totalTerlaluKering', totalTerlaluKering);
+
+    setText('persentaseNormal', `${persentaseNormal} %`);
+    setText('persentasePeringatan', `${persentasePeringatan} %`);
+
+    setText('kesimpulanAnalisis', data.kesimpulan || buatKesimpulanCadangan(data));
+    setText('rekomendasiAnalisis', data.rekomendasi || 'Belum ada rekomendasi.');
+    setText('ringkasanPengujian', buatRingkasanPengujian(data));
+}
+
+function buatKesimpulanCadangan(data) {
+    const totalData = data.total_data ?? 0;
+    const rataSuhu = data.rata_suhu ?? 0;
+    const rataKelembaban = data.rata_kelembaban ?? 0;
+    const totalNormal = data.total_normal ?? 0;
+    const totalPeringatan = data.total_peringatan ?? 0;
+
+    if (totalData === 0) {
+        return 'Belum ada data sensor yang tersimpan. Sistem masih perlu menerima data dari simulasi atau perangkat ESP32.';
+    }
+
+    if (totalNormal >= totalPeringatan) {
+        return `Berdasarkan ${totalData} data sensor, rata-rata suhu kandang adalah ${rataSuhu} °C dan rata-rata kelembaban adalah ${rataKelembaban}%. Sebagian besar kondisi kandang berada dalam status normal, sehingga lingkungan budidaya maggot masih cukup stabil.`;
+    }
+
+    return `Berdasarkan ${totalData} data sensor, rata-rata suhu kandang adalah ${rataSuhu} °C dan rata-rata kelembaban adalah ${rataKelembaban}%. Jumlah kondisi peringatan lebih banyak daripada kondisi normal, sehingga kandang perlu diperiksa, terutama pada aspek suhu, kelembaban media, dan ventilasi.`;
+}
+
+function buatRingkasanPengujian(data) {
+    const totalData = data.total_data ?? 0;
+    const totalNormal = data.total_normal ?? 0;
+    const totalPeringatan = data.total_peringatan ?? 0;
+    const persentaseNormal = data.persentase_normal ?? 0;
+    const persentasePeringatan = data.persentase_peringatan ?? 0;
+
+    if (totalData === 0) {
+        return 'Belum ada data pengujian. Silakan gunakan data simulasi terlebih dahulu sampai perangkat ESP32 tersedia.';
+    }
+
+    return `Pengujian sementara menggunakan ${totalData} data sensor. Dari jumlah tersebut, ${totalNormal} data berada pada kondisi normal dan ${totalPeringatan} data berada pada kondisi peringatan. Persentase kondisi normal sebesar ${persentaseNormal}%, sedangkan kondisi peringatan sebesar ${persentasePeringatan}%. Data ini dapat digunakan sebagai dasar analisis awal terhadap kestabilan suhu dan kelembaban kandang maggot.`;
 }
 
 async function buatSimulasi() {
-    await fetch('/api/sensor/simulate');
-    await refreshDashboard();
+    const result = await fetchJson('/api/sensor/simulate');
+
+    if (result && result.success) {
+        await refreshDashboard();
+    }
 }
 
 function bukaModalReset() {
-    document.getElementById('modalReset').classList.add('show');
+    const modal = getEl('modalReset');
+
+    if (modal) {
+        modal.classList.add('show');
+    }
 }
 
 function tutupModalReset() {
-    document.getElementById('modalReset').classList.remove('show');
+    const modal = getEl('modalReset');
+
+    if (modal) {
+        modal.classList.remove('show');
+    }
 }
 
 async function resetData() {
-    const response = await fetch('/api/sensor/reset', {
+    const result = await fetchJson('/api/sensor/reset', {
         method: 'POST'
     });
 
-    const result = await response.json();
-
-    if (result.success) {
+    if (result && result.success) {
         tutupModalReset();
         window.location.reload();
-    } else {
-        document.getElementById('alertKondisi').className = 'alert-kondisi alert-warning';
-        document.getElementById('alertText').innerText = 'Reset data gagal: ' + result.message;
-        tutupModalReset();
+        return;
     }
+
+    tutupModalReset();
 }
 
 async function refreshDashboard() {
@@ -199,7 +324,9 @@ async function refreshDashboard() {
 }
 
 function formatWaktu(waktu) {
-    if (!waktu) return '-';
+    if (!waktu) {
+        return '-';
+    }
 
     const date = new Date(waktu);
 
@@ -214,7 +341,9 @@ function formatWaktu(waktu) {
 }
 
 function formatWaktuLengkap(waktu) {
-    if (!waktu) return '-';
+    if (!waktu) {
+        return '-';
+    }
 
     const date = new Date(waktu);
 
