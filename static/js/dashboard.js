@@ -328,16 +328,14 @@ function formatWaktu(waktu) {
         return '-';
     }
 
-    const date = new Date(waktu);
+    const teks = String(waktu);
 
-    if (isNaN(date.getTime())) {
-        return waktu;
+    if (teks.includes(' ')) {
+        const bagian = teks.split(' ');
+        return bagian[1].substring(0, 5);
     }
 
-    return date.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    return teks;
 }
 
 function formatWaktuLengkap(waktu) {
@@ -345,13 +343,19 @@ function formatWaktuLengkap(waktu) {
         return '-';
     }
 
-    const date = new Date(waktu);
+    const teks = String(waktu);
 
-    if (isNaN(date.getTime())) {
-        return waktu;
+    if (teks.includes(' ')) {
+        const bagian = teks.split(' ');
+        const tanggal = bagian[0].split('-');
+        const jam = bagian[1].substring(0, 5);
+
+        if (tanggal.length === 3) {
+            return `${tanggal[2]}/${tanggal[1]}/${tanggal[0]}\n${jam} WIB`;
+        }
     }
 
-    return date.toLocaleString('id-ID');
+    return teks;
 }
 
 refreshDashboard();

@@ -292,6 +292,12 @@ tbody tr:hover {
     background: #b91c1c;
 }
 
+#waktuTerakhir {
+    white-space: pre-line;
+    font-size: 28px;
+    line-height: 1.25;
+}
+
 @media (max-width: 1024px) {
     .cards {
         grid-template-columns: repeat(2, 1fr);

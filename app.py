@@ -295,7 +295,13 @@ def sensor_latest():
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT *
+                SELECT 
+                    id,
+                    suhu,
+                    kelembaban,
+                    status_kondisi,
+                    keterangan,
+                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
                 FROM sensor_data
                 ORDER BY id DESC
                 LIMIT 1
@@ -328,7 +334,13 @@ def sensor_history():
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT *
+                SELECT 
+                    id,
+                    suhu,
+                    kelembaban,
+                    status_kondisi,
+                    keterangan,
+                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
                 FROM sensor_data
                 ORDER BY id DESC
                 LIMIT 20
