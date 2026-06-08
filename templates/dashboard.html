@@ -11,8 +11,23 @@
 <body>
 
     <div class="navbar">
-        <h1>Smart Maggot Monitoring</h1>
-        <p>Dashboard monitoring suhu dan kelembaban kandang maggot berbasis IoT</p>
+        <div>
+            <h1>Smart Maggot Monitoring</h1>
+            <p>Dashboard monitoring suhu dan kelembaban kandang maggot berbasis IoT</p>
+        </div>
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+        <strong>Login sebagai:</strong>
+        {{ nama }} - {{ role }}
+    </div>
+
+    <a href="{{ url_for('logout') }}"
+       style="background: #dc2626; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none;">
+        Logout
+    </a>
+</div>
+        </div>
     </div>
 
     <div class="container">
@@ -197,7 +212,7 @@
                 <p id="ringkasanPengujian" style="margin-bottom: 0;">
                     Belum ada ringkasan pengujian. Data sensor masih perlu dikumpulkan.
                 </p>
-            </div>
+            </div>  
         </div>
 
         <div class="panel">

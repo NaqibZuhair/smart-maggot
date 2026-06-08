@@ -2,13 +2,16 @@ import os
 import random
 import pymysql
 
-from flask import Flask, jsonify, request, render_template, Response
+from flask import Flask, jsonify, request, render_template, Response, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
 from dotenv import load_dotenv
+from functools import wraps
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "smart-maggot-secret-key")
 CORS(app)
 
 
@@ -182,9 +185,100 @@ def simpan_data_sensor(suhu, kelembaban):
         connection.close()
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user_id"):
+        return redirect(url_for("home"))
+
+    error = None
+
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        connection = None
+
+        try:
+            connection = get_db_connection()
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM users WHERE email = %s LIMIT 1",
+                    (email,)
+                )
+                user = cursor.fetchone()
+
+            if user and check_password_hash(user["password"], password):
+                session["user_id"] = user["id"]
+                session["nama"] = user["nama"]
+                session["email"] = user["email"]
+                session["role"] = user["role"]
+
+                return redirect(url_for("home"))
+
+            error = "Email atau password salah."
+
+        except Exception as e:
+            error = f"Terjadi kesalahan: {str(e)}"
+
+        finally:
+            if connection:
+                connection.close()
+
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+def login_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            if request.path.startswith("/api/"):
+                return jsonify({
+                    "success": False,
+                    "message": "Akses ditolak. Silakan login terlebih dahulu."
+                }), 401
+
+            return redirect(url_for("login"))
+
+        return function(*args, **kwargs)
+
+    return wrapper
+
+def admin_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+
+        if session.get("role") != "admin":
+            if request.path.startswith("/api/"):
+                return jsonify({
+                    "success": False,
+                    "message": "Akses ditolak. Hanya admin yang boleh melakukan aksi ini."
+                }), 403
+
+            return "Akses ditolak. Hanya admin yang boleh melakukan aksi ini.", 403
+
+        return function(*args, **kwargs)
+
+    return wrapper
+
 @app.route("/")
+@login_required
 def home():
-    return render_template("dashboard.html")
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    return render_template(
+        "dashboard.html",
+        nama=session.get("nama"),
+        role=session.get("role")
+    )
 
 
 @app.route("/api/test")
@@ -226,7 +320,18 @@ def db_test():
 
 
 @app.route("/api/sensor/store", methods=["POST"])
+@login_required
 def sensor_store():
+
+    api_key = request.headers.get("X-API-Key")
+    expected_api_key = os.getenv("IOT_API_KEY")
+
+    if api_key != expected_api_key:
+        return jsonify({
+            "success": False,
+            "message": "API key tidak valid."
+        }), 401
+    
     data = request.get_json(silent=True)
 
     if data:
@@ -273,6 +378,7 @@ def sensor_store():
 
 
 @app.route("/api/sensor/simulate")
+@login_required
 def sensor_simulate():
     suhu = round(random.uniform(24, 36), 2)
     kelembaban = round(random.uniform(55, 90), 2)
@@ -287,6 +393,7 @@ def sensor_simulate():
 
 
 @app.route("/api/sensor/latest")
+@login_required
 def sensor_latest():
     connection = None
 
@@ -326,6 +433,7 @@ def sensor_latest():
 
 
 @app.route("/api/sensor/history")
+@login_required
 def sensor_history():
     connection = None
 
@@ -367,6 +475,7 @@ def sensor_history():
 
 
 @app.route("/api/sensor/statistics")
+@login_required
 def sensor_statistics():
     connection = None
 
@@ -429,6 +538,7 @@ def sensor_statistics():
 
 
 @app.route("/api/sensor/export-csv")
+@login_required
 def sensor_export_csv():
     connection = None
 
@@ -477,6 +587,8 @@ def sensor_export_csv():
 
 
 @app.route("/api/sensor/reset", methods=["POST"])
+@login_required
+@admin_required
 def sensor_reset():
     connection = None
 

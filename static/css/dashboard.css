@@ -14,6 +14,9 @@ body {
     color: white;
     padding: 22px 32px;
     box-shadow: 0 8px 18px rgba(20, 83, 45, 0.18);
+    display:flex;
+    flex: column;
+    justify-content: space-between;
 }
 
 .navbar h1 {
