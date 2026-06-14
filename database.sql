@@ -1,20 +1,23 @@
-CREATE DATABASE IF NOT EXISTS smart_maggot;
-USE smart_maggot;
+CREATE DATABASE IF NOT EXISTS smart_maggot
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS sensor_data (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    suhu FLOAT NOT NULL,
-    kelembaban FLOAT NOT NULL,
-    status_kondisi VARCHAR(50) NOT NULL,
-    keterangan TEXT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+USE smart_maggot;
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') DEFAULT 'user',
+    role ENUM('admin', 'user') NOT NULL DEFAULT 'admin',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sensor_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    suhu FLOAT NOT NULL,
+    kelembaban FLOAT NOT NULL,
+    status_kondisi VARCHAR(50) NOT NULL,
+    keterangan TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

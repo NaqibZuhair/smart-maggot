@@ -1,24 +1,34 @@
 import os
 import random
-import pymysql
-
-from flask import Flask, jsonify, request, render_template, Response, session, redirect, url_for
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_cors import CORS
-from dotenv import load_dotenv
+import secrets
 from functools import wraps
+
+import pymysql
+from dotenv import load_dotenv
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
+from flask_cors import CORS
+from werkzeug.security import check_password_hash
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "smart-maggot-secret-key")
-CORS(app)
 
+app.secret_key = os.getenv("SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError("SECRET_KEY belum diatur di file .env")
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_ENV") == "production"
+
+allowed_origin = os.getenv("ALLOWED_ORIGIN", "*")
+CORS(app, resources={r"/api/*": {"origins": allowed_origin}})
 
 BATAS_SUHU_PANAS = 32
 BATAS_SUHU_DINGIN = 25
 BATAS_KELEMBABAN_LEMBAB = 80
 BATAS_KELEMBABAN_KERING = 60
+BATAS_OFFLINE_DETIK = 60
 
 
 def get_db_connection():
@@ -28,7 +38,8 @@ def get_db_connection():
         password=os.getenv("DB_PASSWORD", ""),
         database=os.getenv("DB_NAME", "smart_maggot"),
         port=int(os.getenv("DB_PORT", 3306)),
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=False,
     )
 
 
@@ -44,34 +55,46 @@ def to_int(value):
     return int(value)
 
 
+def json_error(message, status_code=400, error=None):
+    payload = {
+        "success": False,
+        "message": message,
+    }
+
+    if error and os.getenv("FLASK_ENV") != "production":
+        payload["error"] = str(error)
+
+    return jsonify(payload), status_code
+
+
 def tentukan_status(suhu, kelembaban):
     if suhu > BATAS_SUHU_PANAS:
         return (
             "Terlalu Panas",
-            "Suhu kandang terlalu tinggi. Periksa ventilasi, kurangi paparan panas langsung, dan tambahkan peneduh."
+            "Suhu kandang terlalu tinggi. Periksa ventilasi, kurangi paparan panas langsung, dan tambahkan peneduh.",
         )
 
     if suhu < BATAS_SUHU_DINGIN:
         return (
             "Terlalu Dingin",
-            "Suhu kandang terlalu rendah. Periksa posisi kandang dan pastikan lingkungan tidak terlalu dingin."
+            "Suhu kandang terlalu rendah. Periksa posisi kandang dan pastikan lingkungan tidak terlalu dingin.",
         )
 
     if kelembaban > BATAS_KELEMBABAN_LEMBAB:
         return (
             "Terlalu Lembab",
-            "Kelembaban terlalu tinggi. Kurangi kadar air pada media dan perbaiki sirkulasi udara."
+            "Kelembaban terlalu tinggi. Kurangi kadar air pada media dan perbaiki sirkulasi udara.",
         )
 
     if kelembaban < BATAS_KELEMBABAN_KERING:
         return (
             "Terlalu Kering",
-            "Kelembaban terlalu rendah. Jaga kelembaban media agar kondisi maggot tetap stabil."
+            "Kelembaban terlalu rendah. Jaga kelembaban media agar kondisi maggot tetap stabil.",
         )
 
     return (
         "Normal",
-        "Kondisi suhu dan kelembaban kandang maggot berada dalam batas normal."
+        "Kondisi suhu dan kelembaban kandang maggot berada dalam batas normal.",
     )
 
 
@@ -89,8 +112,8 @@ def buat_kesimpulan_dan_rekomendasi(data):
         return {
             "persentase_normal": 0,
             "persentase_peringatan": 0,
-            "kesimpulan": "Belum ada data sensor yang tersimpan. Silakan buat data simulasi atau kirim data dari perangkat sensor.",
-            "rekomendasi": "Lakukan pengambilan data terlebih dahulu agar sistem dapat memberikan analisis kondisi kandang maggot."
+            "kesimpulan": "Belum ada data sensor yang tersimpan. Silakan buat data simulasi atau kirim data dari perangkat ESP32.",
+            "rekomendasi": "Lakukan pengambilan data terlebih dahulu agar sistem dapat memberikan analisis kondisi kandang maggot.",
         }
 
     persentase_normal = round((total_normal / total_data) * 100, 2)
@@ -113,7 +136,7 @@ def buat_kesimpulan_dan_rekomendasi(data):
         "suhu terlalu panas": total_panas,
         "suhu terlalu dingin": total_dingin,
         "kelembaban terlalu tinggi": total_lembab,
-        "kelembaban terlalu rendah": total_kering
+        "kelembaban terlalu rendah": total_kering,
     }
 
     masalah_dominan = max(daftar_masalah, key=daftar_masalah.get)
@@ -154,19 +177,18 @@ def buat_kesimpulan_dan_rekomendasi(data):
         "persentase_normal": persentase_normal,
         "persentase_peringatan": persentase_peringatan,
         "kesimpulan": kesimpulan,
-        "rekomendasi": rekomendasi
+        "rekomendasi": rekomendasi,
     }
 
 
 def simpan_data_sensor(suhu, kelembaban):
     status, keterangan = tentukan_status(suhu, kelembaban)
-
     connection = get_db_connection()
 
     try:
         with connection.cursor() as cursor:
             sql = """
-                INSERT INTO sensor_data 
+                INSERT INTO sensor_data
                 (suhu, kelembaban, status_kondisi, keterangan)
                 VALUES (%s, %s, %s, %s)
             """
@@ -178,11 +200,58 @@ def simpan_data_sensor(suhu, kelembaban):
                 "suhu": suhu,
                 "kelembaban": kelembaban,
                 "status_kondisi": status,
-                "keterangan": keterangan
+                "keterangan": keterangan,
             }
 
     finally:
         connection.close()
+
+
+def login_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            if request.path.startswith("/api/"):
+                return json_error("Akses ditolak. Silakan login terlebih dahulu.", 401)
+            return redirect(url_for("login"))
+
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
+def admin_required(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            if request.path.startswith("/api/"):
+                return json_error("Akses ditolak. Silakan login terlebih dahulu.", 401)
+            return redirect(url_for("login"))
+
+        if session.get("role") != "admin":
+            if request.path.startswith("/api/"):
+                return json_error("Akses ditolak. Hanya admin yang boleh melakukan aksi ini.", 403)
+            return "Akses ditolak. Hanya admin yang boleh melakukan aksi ini.", 403
+
+        return function(*args, **kwargs)
+
+    return wrapper
+
+
+def validasi_api_key_esp32():
+    expected_api_key = os.getenv("IOT_API_KEY")
+    api_key = request.headers.get("X-API-Key")
+
+    if not expected_api_key:
+        return False, "IOT_API_KEY belum diatur di server."
+
+    if not api_key:
+        return False, "Header X-API-Key wajib dikirim."
+
+    if not secrets.compare_digest(api_key, expected_api_key):
+        return False, "API key tidak valid."
+
+    return True, None
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -193,8 +262,12 @@ def login():
     error = None
 
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        if not email or not password:
+            error = "Email dan password wajib diisi."
+            return render_template("login.html", error=error)
 
         connection = None
 
@@ -203,12 +276,13 @@ def login():
 
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT * FROM users WHERE email = %s LIMIT 1",
-                    (email,)
+                    "SELECT id, nama, email, password, role FROM users WHERE email = %s LIMIT 1",
+                    (email,),
                 )
                 user = cursor.fetchone()
 
             if user and check_password_hash(user["password"], password):
+                session.clear()
                 session["user_id"] = user["id"]
                 session["nama"] = user["nama"]
                 session["email"] = user["email"]
@@ -233,51 +307,14 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-def login_required(function):
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        if not session.get("user_id"):
-            if request.path.startswith("/api/"):
-                return jsonify({
-                    "success": False,
-                    "message": "Akses ditolak. Silakan login terlebih dahulu."
-                }), 401
-
-            return redirect(url_for("login"))
-
-        return function(*args, **kwargs)
-
-    return wrapper
-
-def admin_required(function):
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        if not session.get("user_id"):
-            return redirect(url_for("login"))
-
-        if session.get("role") != "admin":
-            if request.path.startswith("/api/"):
-                return jsonify({
-                    "success": False,
-                    "message": "Akses ditolak. Hanya admin yang boleh melakukan aksi ini."
-                }), 403
-
-            return "Akses ditolak. Hanya admin yang boleh melakukan aksi ini.", 403
-
-        return function(*args, **kwargs)
-
-    return wrapper
 
 @app.route("/")
 @login_required
 def home():
-    if not session.get("user_id"):
-        return redirect(url_for("login"))
-
     return render_template(
         "dashboard.html",
         nama=session.get("nama"),
-        role=session.get("role")
+        role=session.get("role"),
     )
 
 
@@ -286,11 +323,12 @@ def api_test():
     return jsonify({
         "success": True,
         "message": "API Flask berhasil aktif.",
-        "project": "Smart Maggot Monitoring"
+        "project": "Smart Maggot Monitoring",
     })
 
 
 @app.route("/api/db-test")
+@login_required
 def db_test():
     connection = None
 
@@ -304,15 +342,11 @@ def db_test():
         return jsonify({
             "success": True,
             "message": "Koneksi database berhasil.",
-            "total_data_sensor": result["total_data"]
+            "total_data_sensor": result["total_data"],
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Koneksi database gagal.",
-            "error": str(e)
-        }), 500
+        return json_error("Koneksi database gagal.", 500, e)
 
     finally:
         if connection:
@@ -320,18 +354,12 @@ def db_test():
 
 
 @app.route("/api/sensor/store", methods=["POST"])
-@login_required
 def sensor_store():
+    api_key_valid, api_key_message = validasi_api_key_esp32()
 
-    api_key = request.headers.get("X-API-Key")
-    expected_api_key = os.getenv("IOT_API_KEY")
+    if not api_key_valid:
+        return json_error(api_key_message, 401)
 
-    if api_key != expected_api_key:
-        return jsonify({
-            "success": False,
-            "message": "API key tidak valid."
-        }), 401
-    
     data = request.get_json(silent=True)
 
     if data:
@@ -342,38 +370,29 @@ def sensor_store():
         kelembaban = request.form.get("kelembaban")
 
     if suhu is None or kelembaban is None:
-        return jsonify({
-            "success": False,
-            "message": "Data suhu dan kelembaban wajib dikirim."
-        }), 400
+        return json_error("Data suhu dan kelembaban wajib dikirim.", 400)
 
     try:
         suhu = round(float(suhu), 2)
         kelembaban = round(float(kelembaban), 2)
     except ValueError:
-        return jsonify({
-            "success": False,
-            "message": "Suhu dan kelembaban harus berupa angka."
-        }), 400
+        return json_error("Suhu dan kelembaban harus berupa angka.", 400)
 
     if suhu < 0 or suhu > 80:
-        return jsonify({
-            "success": False,
-            "message": "Nilai suhu tidak valid. Masukkan suhu antara 0 sampai 80 derajat Celsius."
-        }), 400
+        return json_error("Nilai suhu tidak valid. Masukkan suhu antara 0 sampai 80 derajat Celsius.", 400)
 
     if kelembaban < 0 or kelembaban > 100:
-        return jsonify({
-            "success": False,
-            "message": "Nilai kelembaban tidak valid. Masukkan kelembaban antara 0 sampai 100 persen."
-        }), 400
+        return json_error("Nilai kelembaban tidak valid. Masukkan kelembaban antara 0 sampai 100 persen.", 400)
 
-    data_sensor = simpan_data_sensor(suhu, kelembaban)
+    try:
+        data_sensor = simpan_data_sensor(suhu, kelembaban)
+    except Exception as e:
+        return json_error("Data sensor gagal disimpan.", 500, e)
 
     return jsonify({
         "success": True,
         "message": "Data sensor berhasil disimpan.",
-        "data": data_sensor
+        "data": data_sensor,
     })
 
 
@@ -383,12 +402,15 @@ def sensor_simulate():
     suhu = round(random.uniform(24, 36), 2)
     kelembaban = round(random.uniform(55, 90), 2)
 
-    data_sensor = simpan_data_sensor(suhu, kelembaban)
+    try:
+        data_sensor = simpan_data_sensor(suhu, kelembaban)
+    except Exception as e:
+        return json_error("Data simulasi gagal dibuat.", 500, e)
 
     return jsonify({
         "success": True,
         "message": "Data simulasi berhasil dibuat.",
-        "data": data_sensor
+        "data": data_sensor,
     })
 
 
@@ -402,30 +424,41 @@ def sensor_latest():
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT 
+                SELECT
                     id,
                     suhu,
                     kelembaban,
                     status_kondisi,
                     keterangan,
-                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
+                    TIMESTAMPDIFF(SECOND, created_at, NOW()) AS detik_sejak_update
                 FROM sensor_data
                 ORDER BY id DESC
                 LIMIT 1
             """)
             data = cursor.fetchone()
 
+        if data:
+            detik_sejak_update = to_int(data.get("detik_sejak_update"))
+
+            if detik_sejak_update <= BATAS_OFFLINE_DETIK:
+                data["status_perangkat"] = "Online"
+                data["koneksi_perangkat"] = "online"
+                data["pesan_perangkat"] = "ESP32 aktif dan baru saja mengirim data sensor."
+            else:
+                data["status_perangkat"] = "Offline"
+                data["koneksi_perangkat"] = "offline"
+                data["pesan_perangkat"] = (
+                    f"Belum ada data baru dari ESP32 selama {detik_sejak_update} detik."
+                )
+
         return jsonify({
             "success": True,
-            "data": data
+            "data": data,
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Gagal mengambil data sensor terbaru.",
-            "error": str(e)
-        }), 500
+        return json_error("Gagal mengambil data sensor terbaru.", 500, e)
 
     finally:
         if connection:
@@ -442,7 +475,7 @@ def sensor_history():
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT 
+                SELECT
                     id,
                     suhu,
                     kelembaban,
@@ -459,15 +492,11 @@ def sensor_history():
 
         return jsonify({
             "success": True,
-            "data": data
+            "data": data,
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Gagal mengambil riwayat data sensor.",
-            "error": str(e)
-        }), 500
+        return json_error("Gagal mengambil riwayat data sensor.", 500, e)
 
     finally:
         if connection:
@@ -502,6 +531,8 @@ def sensor_statistics():
             """)
             data = cursor.fetchone()
 
+        data = data or {}
+
         data["total_data"] = to_int(data.get("total_data"))
         data["rata_suhu"] = to_float(data.get("rata_suhu"))
         data["rata_kelembaban"] = to_float(data.get("rata_kelembaban"))
@@ -522,15 +553,11 @@ def sensor_statistics():
 
         return jsonify({
             "success": True,
-            "data": data
+            "data": data,
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Gagal mengambil statistik data sensor.",
-            "error": str(e)
-        }), 500
+        return json_error("Gagal mengambil statistik data sensor.", 500, e)
 
     finally:
         if connection:
@@ -556,7 +583,8 @@ def sensor_export_csv():
         csv_data = "id,suhu,kelembaban,status_kondisi,keterangan,created_at\n"
 
         for row in data:
-            keterangan = str(row["keterangan"]).replace(",", " ")
+            keterangan = str(row["keterangan"]).replace(",", " ").replace("\n", " ")
+
             csv_data += (
                 f'{row["id"]},'
                 f'{row["suhu"]},'
@@ -570,16 +598,12 @@ def sensor_export_csv():
             csv_data,
             mimetype="text/csv",
             headers={
-                "Content-Disposition": "attachment; filename=data_sensor_maggot.csv"
-            }
+                "Content-Disposition": "attachment; filename=data_sensor_maggot.csv",
+            },
         )
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Gagal export data sensor.",
-            "error": str(e)
-        }), 500
+        return json_error("Gagal export data sensor.", 500, e)
 
     finally:
         if connection:
@@ -587,7 +611,6 @@ def sensor_export_csv():
 
 
 @app.route("/api/sensor/reset", methods=["POST"])
-@login_required
 @admin_required
 def sensor_reset():
     connection = None
@@ -601,15 +624,11 @@ def sensor_reset():
 
         return jsonify({
             "success": True,
-            "message": "Semua data sensor berhasil dihapus."
+            "message": "Semua data sensor berhasil dihapus.",
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Gagal menghapus data sensor.",
-            "error": str(e)
-        }), 500
+        return json_error("Gagal menghapus data sensor.", 500, e)
 
     finally:
         if connection:
@@ -617,4 +636,9 @@ def sensor_reset():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG") == "1"
+    app.run(
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 5000)),
+        debug=debug_mode,
+    )

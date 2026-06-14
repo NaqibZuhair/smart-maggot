@@ -1,6 +1,41 @@
-venv/
+# Environment
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
-.idea/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.sql.bak
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode/
+.idea/
+
+# Build
+dist/
+build/
+*.egg-info/

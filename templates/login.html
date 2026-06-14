@@ -3,100 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Smart Maggot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <style>
+        :root {
+            --green-dark: #14532d;
+            --green-main: #15803d;
+            --green-soft: #dcfce7;
+            --green-border: #bbf7d0;
+            --gray-bg: #f8fafc;
+            --gray-text: #64748b;
+            --gray-dark: #0f172a;
+            --gray-border: #e2e8f0;
+            --red-bg: #fef2f2;
+            --red-text: #991b1b;
+            --red-border: #fecaca;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f3f7f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 32%),
+                linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
+            color: var(--gray-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
         }
 
-        .login-box {
+        .login-wrapper {
             width: 100%;
-            max-width: 380px;
-            background: white;
-            padding: 32px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            max-width: 980px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            background: var(--white);
+            border: 1px solid var(--gray-border);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
         }
 
-        h1 {
-            margin-top: 0;
-            color: #14532d;
-            font-size: 26px;
-            text-align: center;
+        .login-info {
+            padding: 48px;
+            background:
+                linear-gradient(135deg, rgba(20, 83, 45, 0.96), rgba(21, 128, 61, 0.92)),
+                linear-gradient(135deg, #14532d, #15803d);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 560px;
         }
 
-        p {
-            text-align: center;
-            color: #6b7280;
-            margin-bottom: 24px;
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: fit-content;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .brand-dot {
+            width: 10px;
+            height: 10px;
+            background: #86efac;
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(134, 239, 172, 0.18);
+        }
+
+        .login-info h1 {
+            margin: 42px 0 16px;
+            font-size: 42px;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .login-info p {
+            margin: 0;
+            max-width: 460px;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .feature-list {
+            display: grid;
+            gap: 14px;
+            margin-top: 36px;
+        }
+
+        .feature-item {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.11);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .feature-item strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .feature-item span {
+            color: rgba(255, 255, 255, 0.76);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .login-card {
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-card h2 {
+            margin: 0 0 10px;
+            font-size: 30px;
+            color: var(--gray-dark);
+            letter-spacing: -0.5px;
+        }
+
+        .login-card .subtitle {
+            margin: 0 0 32px;
+            color: var(--gray-text);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .error-box {
+            background: var(--red-bg);
+            color: var(--red-text);
+            border: 1px solid var(--red-border);
+            padding: 13px 14px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
         }
 
         label {
-            font-weight: bold;
             display: block;
             margin-bottom: 8px;
-            color: #374151;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 700;
         }
 
         input {
             width: 100%;
-            box-sizing: border-box;
-            padding: 12px;
-            margin-bottom: 16px;
-            border: 1px solid #d1d5db;
-            border-radius: 10px;
-            font-size: 14px;
+            padding: 14px 15px;
+            border: 1px solid var(--gray-border);
+            border-radius: 14px;
+            font-size: 15px;
+            color: var(--gray-dark);
+            background: #ffffff;
+            outline: none;
+            transition: 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--green-main);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
         }
 
         button {
             width: 100%;
-            background: #15803d;
-            color: white;
             border: none;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: bold;
+            padding: 15px;
+            border-radius: 14px;
+            background: var(--green-main);
+            color: white;
+            font-size: 15px;
+            font-weight: 800;
             cursor: pointer;
+            transition: 0.2s ease;
+            margin-top: 6px;
         }
 
         button:hover {
-            background: #166534;
+            background: var(--green-dark);
+            transform: translateY(-1px);
         }
 
-        .error {
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 14px;
+        .security-note {
+            margin-top: 22px;
+            padding: 14px;
+            background: var(--green-soft);
+            border: 1px solid var(--green-border);
+            border-radius: 14px;
+            color: #166534;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .footer-text {
+            margin-top: 26px;
+            text-align: center;
+            color: var(--gray-text);
+            font-size: 12px;
+        }
+
+        @media (max-width: 820px) {
+            .login-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .login-info {
+                min-height: auto;
+                padding: 34px;
+            }
+
+            .login-info h1 {
+                font-size: 32px;
+                margin-top: 28px;
+            }
+
+            .feature-list {
+                margin-top: 28px;
+            }
+
+            .login-card {
+                padding: 34px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 14px;
+            }
+
+            .login-wrapper {
+                border-radius: 22px;
+            }
+
+            .login-info,
+            .login-card {
+                padding: 26px;
+            }
+
+            .login-info h1 {
+                font-size: 28px;
+            }
+
+            .login-card h2 {
+                font-size: 25px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h1>Smart Maggot</h1>
-        <p>Login Dashboard Monitoring</p>
+    <main class="login-wrapper">
+        <section class="login-info">
+            <div>
+                <div class="brand-badge">
+                    <span class="brand-dot"></span>
+                    Smart Maggot Monitoring
+                </div>
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+                <h1>Dashboard IoT untuk kandang maggot.</h1>
 
-        <form method="POST" action="{{ url_for('login') }}">
-            <label>Email</label>
-            <input type="email" name="email" placeholder="Masukkan email" required>
+                <p>
+                    Sistem ini memantau suhu dan kelembaban kandang maggot berbasis ESP32.
+                    Data sensor digunakan untuk membantu analisis kondisi lingkungan budidaya.
+                </p>
 
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Masukkan password" required>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <strong>Monitoring Sensor</strong>
+                        <span>Menampilkan data suhu dan kelembaban dari perangkat ESP32.</span>
+                    </div>
 
-            <button type="submit">Login</button>
-        </form>
-    </div>
+                    <div class="feature-item">
+                        <strong>Analisis Kondisi</strong>
+                        <span>Mengklasifikasikan kondisi kandang menjadi normal atau peringatan.</span>
+                    </div>
+
+                    <div class="feature-item">
+                        <strong>Dashboard Terproteksi</strong>
+                        <span>Akses dashboard hanya diberikan kepada pengguna yang sudah login.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="login-card">
+            <h2>Masuk Dashboard</h2>
+            <p class="subtitle">
+                Gunakan akun admin untuk mengakses data monitoring Smart Maggot.
+            </p>
+
+            {% if error %}
+                <div class="error-box">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Masukkan email admin"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Masukkan password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+
+                <button type="submit">Login</button>
+            </form>
+
+            <div class="security-note">
+                Dashboard menggunakan session login. Pengiriman data dari ESP32 tetap memakai API key melalui header <strong>X-API-Key</strong>.
+            </div>
+
+            <div class="footer-text">
+                Smart Maggot Farming | Mobile Computing Project
+            </div>
+        </section>
+    </main>
 </body>
 </html>

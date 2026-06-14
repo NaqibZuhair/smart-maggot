@@ -2,266 +2,275 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Smart Maggot Monitoring</title>
+    <title>Dashboard - Smart Maggot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-
-    <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
 
-    <div class="navbar">
-        <div>
-            <h1>Smart Maggot Monitoring</h1>
-            <p>Dashboard monitoring suhu dan kelembaban kandang maggot berbasis IoT</p>
-        </div>
-        <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <div>
-        <strong>Login sebagai:</strong>
-        {{ nama }} - {{ role }}
+<body data-role="{{ role }}">
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">SM</div>
+                <div>
+                    <h1>Smart Maggot</h1>
+                    <p>IoT Monitoring</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <a href="#overview" class="menu-item active">
+                    <span>📊</span>
+                    Overview
+                </a>
+                <a href="#chart-section" class="menu-item">
+                    <span>📈</span>
+                    Grafik Sensor
+                </a>
+                <a href="#analysis-section" class="menu-item">
+                    <span>🧠</span>
+                    Analisis
+                </a>
+                <a href="#history-section" class="menu-item">
+                    <span>🗂️</span>
+                    Riwayat
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>Login sebagai</p>
+                <strong>{{ nama }}</strong>
+                <span>{{ role }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Dashboard Monitoring</p>
+                    <h2>Smart Maggot Farming</h2>
+                    <span class="topbar-subtitle">
+                        Pemantauan suhu dan kelembaban kandang maggot berbasis ESP32.
+                    </span>
+                </div>
+
+                <div class="topbar-actions">
+                    <button id="btnRefresh" class="btn btn-secondary" type="button">
+                        Refresh
+                    </button>
+
+                    <button id="btnSimulate" class="btn btn-primary" type="button">
+                        Simulasi Data
+                    </button>
+                </div>
+            </header>
+
+            <section id="overview" class="overview-grid">
+                <article class="status-card main-status-card">
+                    <div class="card-header">
+                        <span class="card-label">Status Kandang</span>
+                        <span id="latestTime" class="card-time">Belum ada data</span>
+                    </div>
+
+                    <div class="status-content">
+                        <div id="statusIndicator" class="status-indicator normal"></div>
+
+                        <div>
+                            <h3 id="latestStatus">Memuat data...</h3>
+                            <p id="latestDescription">
+                                Sistem sedang mengambil data sensor terbaru.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="device-status-row">
+                        <div>
+                            <span class="device-label">Koneksi ESP32</span>
+                            <p id="deviceStatusMessage">
+                                Menunggu data terbaru dari perangkat.
+                            </p>
+                        </div>
+
+                        <span id="deviceStatusBadge" class="device-badge offline">
+                            Offline
+                        </span>
+                    </div>
+                </article>
+
+                <article class="metric-card">
+                    <div class="metric-icon temperature">🌡️</div>
+                    <div>
+                        <p>Suhu Terbaru</p>
+                        <h3><span id="latestTemperature">0</span><small>°C</small></h3>
+                    </div>
+                </article>
+
+                <article class="metric-card">
+                    <div class="metric-icon humidity">💧</div>
+                    <div>
+                        <p>Kelembaban Terbaru</p>
+                        <h3><span id="latestHumidity">0</span><small>%</small></h3>
+                    </div>
+                </article>
+
+                <article class="metric-card">
+                    <div class="metric-icon data">📡</div>
+                    <div>
+                        <p>Total Data</p>
+                        <h3><span id="totalData">0</span><small>record</small></h3>
+                    </div>
+                </article>
+            </section>
+
+            <section class="summary-grid">
+                <article class="summary-card">
+                    <p>Rata-rata Suhu</p>
+                    <h3><span id="averageTemperature">0</span> °C</h3>
+                    <span id="temperatureRange">Min 0 °C | Max 0 °C</span>
+                </article>
+
+                <article class="summary-card">
+                    <p>Rata-rata Kelembaban</p>
+                    <h3><span id="averageHumidity">0</span> %</h3>
+                    <span id="humidityRange">Min 0% | Max 0%</span>
+                </article>
+
+                <article class="summary-card success">
+                    <p>Kondisi Normal</p>
+                    <h3><span id="normalPercentage">0</span>%</h3>
+                    <span><span id="normalCount">0</span> data normal</span>
+                </article>
+
+                <article class="summary-card warning">
+                    <p>Kondisi Peringatan</p>
+                    <h3><span id="warningPercentage">0</span>%</h3>
+                    <span><span id="warningCount">0</span> data peringatan</span>
+                </article>
+            </section>
+
+            <section id="chart-section" class="content-grid">
+                <article class="panel chart-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="eyebrow">Grafik</p>
+                            <h3>Tren Suhu dan Kelembaban</h3>
+                        </div>
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <canvas id="sensorChart"></canvas>
+                    </div>
+                </article>
+
+                <article class="panel condition-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="eyebrow">Kondisi</p>
+                            <h3>Distribusi Peringatan</h3>
+                        </div>
+                    </div>
+
+                    <div class="condition-list">
+                        <div class="condition-item">
+                            <span>Terlalu Panas</span>
+                            <strong id="hotCount">0</strong>
+                        </div>
+
+                        <div class="condition-item">
+                            <span>Terlalu Dingin</span>
+                            <strong id="coldCount">0</strong>
+                        </div>
+
+                        <div class="condition-item">
+                            <span>Terlalu Lembab</span>
+                            <strong id="wetCount">0</strong>
+                        </div>
+
+                        <div class="condition-item">
+                            <span>Terlalu Kering</span>
+                            <strong id="dryCount">0</strong>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section id="analysis-section" class="panel analysis-panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Analisis Sensor</p>
+                        <h3>Kesimpulan dan Rekomendasi</h3>
+                    </div>
+                </div>
+
+                <div class="analysis-grid">
+                    <div class="analysis-box">
+                        <h4>Kesimpulan</h4>
+                        <p id="analysisConclusion">
+                            Belum ada analisis yang tersedia.
+                        </p>
+                    </div>
+
+                    <div class="analysis-box recommendation">
+                        <h4>Rekomendasi</h4>
+                        <p id="analysisRecommendation">
+                            Sistem akan memberikan rekomendasi setelah data sensor tersedia.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history-section" class="panel table-panel">
+                <div class="panel-header table-header">
+                    <div>
+                        <p class="eyebrow">Riwayat</p>
+                        <h3>Data Sensor Terbaru</h3>
+                    </div>
+
+                    <div class="table-actions">
+                        <button id="btnExport" class="btn btn-secondary" type="button">
+                            Export CSV
+                        </button>
+
+                        {% if role == "admin" %}
+                            <button id="btnReset" class="btn btn-danger" type="button">
+                                Reset Data
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Suhu</th>
+                                <th>Kelembaban</th>
+                                <th>Status</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-row">
+                                    Memuat data sensor...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <a href="{{ url_for('logout') }}"
-       style="background: #dc2626; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none;">
-        Logout
-    </a>
-</div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="cards">
-            <div class="card">
-                <small>Suhu Terbaru</small>
-                <h2 id="suhu">- °C</h2>
-            </div>
-
-            <div class="card">
-                <small>Kelembaban Terbaru</small>
-                <h2 id="kelembaban">- %</h2>
-            </div>
-
-            <div class="card">
-                <small>Status Kandang</small>
-                <h2 id="status">-</h2>
-            </div>
-
-            <div class="card">
-                <small>Waktu Data Terakhir</small>
-                <h2 id="waktuTerakhir">-</h2>
-            </div>
-        </div>
-
-        <div id="alertKondisi" class="alert-kondisi alert-netral">
-            <strong>Status Monitoring:</strong>
-            <span id="alertText">Belum ada data sensor terbaru.</span>
-        </div>
-
-        <div class="panel">
-            <h3>Batas Ideal Kondisi Kandang</h3>
-            <p>
-                Batas ini digunakan sistem untuk mengklasifikasikan kondisi kandang maggot berdasarkan data suhu dan kelembaban.
-            </p>
-
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <small>Suhu Normal</small>
-                    <h3>25°C - 32°C</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kelembaban Normal</small>
-                    <h3>60% - 80%</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Suhu Peringatan</small>
-                    <h3>&lt; 25°C atau &gt; 32°C</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kelembaban Peringatan</small>
-                    <h3>&lt; 60% atau &gt; 80%</h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h3>Kontrol Data Sensor</h3>
-            <p>
-                Tombol ini digunakan untuk membuat data simulasi selama alat ESP32 dan sensor DHT belum tersedia.
-            </p>
-
-            <button onclick="buatSimulasi()">Generate Data Simulasi</button>
-
-            <a href="/api/sensor/export-csv" class="btn-export">Export Data CSV</a>
-
-            <button onclick="bukaModalReset()" class="btn-reset">Reset Data</button>
-
-            <h3 style="margin-top: 24px;">Keterangan Data Terbaru</h3>
-            <p id="keterangan">Belum ada data terbaru.</p>
-        </div>
-
-        <div class="panel">
-            <h3>Analisis Data Sensor</h3>
-            <p>Ringkasan statistik dari seluruh data sensor yang tersimpan di database.</p>
-
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <small>Total Data</small>
-                    <h3 id="totalData">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Rata-rata Suhu</small>
-                    <h3 id="rataSuhu">- °C</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Rata-rata Kelembaban</small>
-                    <h3 id="rataKelembaban">- %</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Suhu Tertinggi</small>
-                    <h3 id="suhuTertinggi">- °C</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Suhu Terendah</small>
-                    <h3 id="suhuTerendah">- °C</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kelembaban Tertinggi</small>
-                    <h3 id="kelembabanTertinggi">- %</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kelembaban Terendah</small>
-                    <h3 id="kelembabanTerendah">- %</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kondisi Normal</small>
-                    <h3 id="totalNormal">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Kondisi Peringatan</small>
-                    <h3 id="totalPeringatan">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Persentase Normal</small>
-                    <h3 id="persentaseNormal">- %</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Persentase Peringatan</small>
-                    <h3 id="persentasePeringatan">- %</h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h3>Detail Klasifikasi Kondisi</h3>
-            <p>
-                Bagian ini menampilkan jumlah data berdasarkan hasil klasifikasi suhu dan kelembaban kandang.
-            </p>
-
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <small>Terlalu Panas</small>
-                    <h3 id="totalTerlaluPanas">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Terlalu Dingin</small>
-                    <h3 id="totalTerlaluDingin">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Terlalu Lembab</small>
-                    <h3 id="totalTerlaluLembab">-</h3>
-                </div>
-
-                <div class="stat-box">
-                    <small>Terlalu Kering</small>
-                    <h3 id="totalTerlaluKering">-</h3>
-                </div>
-            </div>
-
-            <div style="margin-top: 18px; background: #ecfdf5; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px;">
-                <h3 style="margin-top: 0;">Kesimpulan Sementara</h3>
-                <p id="kesimpulanAnalisis" style="margin-bottom: 0;">
-                    Belum ada kesimpulan. Data sensor masih perlu dikumpulkan.
-                </p>
-            </div>
-
-            <div style="margin-top: 18px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 12px;">
-                <h3 style="margin-top: 0;">Rekomendasi Tindakan</h3>
-                <p id="rekomendasiAnalisis" style="margin-bottom: 0;">
-                    Belum ada rekomendasi. Data sensor masih perlu dikumpulkan.
-                </p>
-            </div>
-
-            <div style="margin-top: 18px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px;">
-                <h3 style="margin-top: 0;">Ringkasan Pengujian</h3>
-                <p id="ringkasanPengujian" style="margin-bottom: 0;">
-                    Belum ada ringkasan pengujian. Data sensor masih perlu dikumpulkan.
-                </p>
-            </div>  
-        </div>
-
-        <div class="panel">
-            <h3>Grafik Suhu dan Kelembaban</h3>
-            <p>Grafik ini menampilkan tren 20 data sensor terbaru yang tersimpan di database.</p>
-
-            <div class="chart-wrapper">
-                <canvas id="grafikSensor"></canvas>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h3>Riwayat Data Sensor</h3>
-            <p>Menampilkan 20 data sensor terbaru yang sudah tersimpan di database.</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Waktu</th>
-                        <th>Suhu</th>
-                        <th>Kelembaban</th>
-                        <th>Status</th>
-                        <th>Keterangan</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelRiwayat">
-                    <tr>
-                        <td colspan="5">Belum ada data.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="modalReset" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Reset Data Sensor</h3>
-            <p>
-                Yakin ingin menghapus semua data sensor? Data yang sudah dihapus tidak dapat dikembalikan.
-            </p>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" onclick="tutupModalReset()">Batal</button>
-                <button type="button" class="btn-confirm-reset" onclick="resetData()">Ya, Reset Data</button>
-            </div>
-        </div>
+    <div id="toast" class="toast">
+        <span id="toastMessage">Pesan sistem</span>
     </div>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-
 </body>
 </html>
