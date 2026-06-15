@@ -430,7 +430,7 @@ def sensor_latest():
                     kelembaban,
                     status_kondisi,
                     keterangan,
-                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
+                    DATE_FORMAT(DATE_ADD(created_at, INTERVAL 7 HOUR), '%Y-%m-%d %H:%i:%s') AS created_at,
                     TIMESTAMPDIFF(SECOND, created_at, NOW()) AS detik_sejak_update
                 FROM sensor_data
                 ORDER BY id DESC
@@ -481,7 +481,7 @@ def sensor_history():
                     kelembaban,
                     status_kondisi,
                     keterangan,
-                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+                    DATE_FORMAT(DATE_ADD(created_at, INTERVAL 7 HOUR), '%Y-%m-%d %H:%i:%s') AS created_at
                 FROM sensor_data
                 ORDER BY id DESC
                 LIMIT 20

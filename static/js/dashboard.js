@@ -115,7 +115,7 @@ function updateLatestSensor(data) {
         return;
     }
 
-    elements.latestTime.textContent = data.created_at || "Waktu tidak tersedia";
+    elements.latestTime.textContent = data.created_at ? `${data.created_at} WIB` : "Waktu tidak tersedia";
     elements.latestStatus.textContent = data.status_kondisi || "Tidak diketahui";
     elements.latestDescription.textContent = data.keterangan || "Tidak ada keterangan.";
     elements.latestTemperature.textContent = formatNumber(data.suhu);
@@ -185,7 +185,7 @@ function renderHistoryTable(data) {
 
             return `
                 <tr>
-                    <td>${item.created_at || "-"}</td>
+                    <td>${item.created_at ? item.created_at + " WIB" : "-"}</td>
                     <td>${formatNumber(item.suhu)} °C</td>
                     <td>${formatNumber(item.kelembaban)}%</td>
                     <td>
